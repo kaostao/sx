@@ -58,6 +58,12 @@ else
 fi
 SRC_DIR=$INSTALL_PREFIX/src
 PKG_CONFIG_PATH=$INSTALL_PREFIX/lib/pkgconfig
+# Debian dependencies
+D_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++-dev libncurses5-dev"
+# Ubunte dependencies
+U_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost1.49-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++8-dev libncurses5-dev"
+# Fedora dependencies
+F_DEPENDENCIES="gcc-c++ git autoconf libtool boost-devel pkgconfig libcurl-devel openssl-devel leveldb-devel zeromq zeromq3 zeromq-devel libconfig libconfig-devel ncurses-devel"
 mkdir -p $SRC_DIR
 mkdir -p $PKG_CONFIG_PATH
 #
@@ -67,22 +73,16 @@ install_dependencies(){
     echo
     if [ "$flavour_id" = "debian" ]; then
         if [ "$ROOT_INSTALL" = 1 ]; then
-# Debian dependencies
-            D_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++-dev libncurses5-dev"
             sleep 0.5
             apt-get -y install $D_DEPENDENCIES
         fi
     elif [ "$flavour_id" = "ubuntu" ]; then
         if [ "$ROOT_INSTALL" = 1 ]; then
-# Ubunte dependencies
-            U_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost1.49-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++8-dev libncurses5-dev"
             sleep 0.5
             apt-get -y install $U_DEPENDENCIES
         fi
     elif [ "$flavour_id" = "fedora" ]; then
         if [ "$ROOT_INSTALL" = 1 ]; then
-# Fedora dependencies
-            F_DEPENDENCIES="gcc-c++ git autoconf libtool boost-devel pkgconfig libcurl-devel openssl-devel leveldb-devel zeromq zeromq3 zeromq-devel libconfig libconfig-devel ncurses-devel"
             sleep 0.5
             yum -y install $F_DEPENDENCIES
         fi
