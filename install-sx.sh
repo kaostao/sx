@@ -2,7 +2,8 @@
 #
 # Script to install libbitcoin, libwallet, obelisk and sx tools.
 #
-# Install dependencies and compiles the source code from git for Debian 7 / Ubuntu 13.10 or Fedora GNU/Linux distributions.
+# Install dependencies and compiles the source code from git for Debian 7 / Ubuntu 13.10.
+# For Fedora GNU/Linux distribution aren't tested.
 #
 # Requires sudo. 
 #
@@ -18,82 +19,130 @@ echo
 echo " [+] Welcome to S(pesmilo)X(changer)."
 echo
 sleep 0.3
-if [ "$#" = "1" ]; then
-    if [[ "$1" = /* ]]; then
-        #Absolute path
-        INSTALL_PREFIX=$1
-    elif [ "$1" = "--help" ]; then
-        echo
-        echo " [+] Install script help:"
-        echo " Requires sudo."
-        echo " --> To execute this script type:"
-        echo " <sudo bash install-sx.sh>"
-        echo " --> To execute this script and install at a specific path type:"
-        echo " <sudo bash install-sx.sh PATH/...>"
-        echo " This script will install libbitcoin, libwallet, obelisk and sx tools."
-        echo " The standard path to the source instalation is /usr/local/src."
-        echo " The stardard path for the conf files is /etc."
-        echo
-        exit
-    else
-        #Relative path
+
+help_install(){
+    if [ "$1" = "help" ]; then
+         echo
+         echo " [+] Install script help:"
+         echo " With this script you can install libbitcoin, libwallet, obelisk and sx tools."
+         echo " You can choose betwen a local, custom or a standard (root) install."
+         echo " To execute this script and build a local instalation, run:"
+         echo " <bash install-sx.sh PATH/...>"
+         echo " To execute this script and build a custom instalation type:"
+         echo " <sudo bash install-sx.sh /PATH/...>"
+         echo " To execute this script and build a standard (root) instalation type:"
+         echo " <sudo bash install-sx.sh>"
+         echo " The standard path to the source instalation is /usr/local/src."
+         echo " The stardard path for the conf files is /etc." 
+         echo " Requires sudo."
+         echo
+         exit
+    fi
+}
+
+# Custom path:  
+custom_install(){
+    if [[ "$1" = "/*" ]]; then
+        if [ `id -u` = "0" ]; then
+            INSTALL_PREFIX=$1
+            CONF_DIR=/etc
+            RUN_LDCONFIG=
+            ROOT_INSTALL=1
+        else 
+            echo " To setup a custom path path to install run this script as root:"
+            echo " <sudo bash install-sx.sh /PATH>"
+            echo " Help menu:"
+            echo " <bash install-sx.sh help>" 
+            exit
+        fi    
+            
+    fi
+}
+
+# Local path:
+local_install(){
+    if [[ -n "$1" ]]; then
         RELATIVE=`pwd`
         INSTALL_PREFIX=$RELATIVE/$1
+        CONF_DIR=$INSTALL_PREFIX/etc
+        RUN_LDCONFIG=
+        ROOT_INSTALL=0
+    elif [[ -z "$1" ]]; then
+        echo " You need to set a path to build this instalation."
+        echo " To setup a local path to install type:"
+        echo " <bash install PATH/...>"
+        echo " To setup a custom path or to setup a standard (root) path to install,"
+        echo " exit with CTRL+c and run this script as root:"
+        echo " <sudo bash install-sx.sh /PATH> for a custom install, or:"
+        echo " <sudo bash install-sx.sh> for a standard (root) install."
+        echo " Help menu:"
+        echo " <bash install-sx.sh help>" 
+        exit
+    fi    
+}
+
+# Standard (root) path:
+root_install(){
+    if [[ -z "$1" ]]; then
+        if [ `id -u` = "0" ]; then
+        INSTALL_PREFIX=/usr/local
+        CONF_DIR=/etc
+        RUN_LDCONFIG=ldconfig
+        ROOT_INSTALL=1
+        elif [ `id -u` != "0" ]; then
+            local_path
+        fi
     fi
-    CONF_DIR=$INSTALL_PREFIX/etc
-    RUN_LDCONFIG=
-    ROOT_INSTALL=0
-elif [ `id -u` = "0" ]; then
-    INSTALL_PREFIX=/usr/local
-    CONF_DIR=/etc
-    RUN_LDCONFIG=ldconfig
-    ROOT_INSTALL=1
-else
-    echo
-    echo "[+] ERROR: This script must be run as root." 1>&2
-    echo
-    echo "<sudo bash install-sx.sh>"
-    echo
-    exit
-fi
-SRC_DIR=$INSTALL_PREFIX/src
-PKG_CONFIG_PATH=$INSTALL_PREFIX/lib/pkgconfig
-# Debian dependencies
-D_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++-dev libncurses5-dev"
-# Ubunte dependencies
-U_DEPENDENCIES="git build-essential autoconf apt-utils libtool libboost1.49-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++8-dev libncurses5-dev"
-# Fedora dependencies
-F_DEPENDENCIES="gcc-c++ git autoconf libtool boost-devel pkgconfig libcurl-devel openssl-devel leveldb-devel zeromq zeromq3 zeromq-devel libconfig libconfig-devel ncurses-devel"
-mkdir -p $SRC_DIR
-mkdir -p $PKG_CONFIG_PATH
-#
+}    
+
 install_dependencies(){
     flavour_id=`cat /etc/*-release | egrep -i "^ID=" | cut -f 2 -d "="`
     echo " Flavour: $flavour_id."
     echo
-    if [ "$flavour_id" = "debian" ]; then
-        if [ "$ROOT_INSTALL" = 1 ]; then
+    if [ "$ROOT_INSTALL" = 1 ]; then
+        if [ "$flavour_id" = "debian" ]; then
+                sleep 0.5
+                apt-get install -y git build-essential autoconf apt-utils libtool libboost-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++-dev libncurses5-dev
+            elif [ "$flavour_id" = "ubuntu" ]; then
+                sleep 0.5
+                apt-get install -y git build-essential autoconf apt-utils libtool libboost1.49-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++8-dev libncurses5-dev
+#            elif [ "$flavour_id" = "fedora" ]; then
+#                sleep 0.5
+#                $F_DEPENDENCIES
+            else
+                echo
+                echo " [+] ERROR: No GNU/Linux flavour properly detected: $flavour_id" 1>&2
+                echo 
+                echo " Please, review the script."
+                echo
+                exit
+            fi
+    elif [ "$ROOT_INSTALL" = 1 ]; then
+        if [ "$flavour_id" = "debian" ]; then
             sleep 0.5
-            apt-get -y install $D_DEPENDENCIES
-        fi
-    elif [ "$flavour_id" = "ubuntu" ]; then
-        if [ "$ROOT_INSTALL" = 1 ]; then
+            sudo apt-get install -y git build-essential autoconf apt-utils libtool libboost-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++-dev libncurses5-dev
+        elif [ "$flavour_id" = "ubuntu" ]; then
             sleep 0.5
-            apt-get -y install $U_DEPENDENCIES
+            sudo apt-get install -y git build-essential autoconf apt-utils libtool libboost1.49-all-dev pkg-config libcurl4-openssl-dev libleveldb-dev libzmq-dev libconfig++8-dev libncurses5-dev
+#        elif [ "$flavour_id" = "fedora" ]; then
+#            sleep 0.5
+#            sudo $F_DEPENDENCIES
+        else
+            echo
+            echo " [+] ERROR: No GNU/Linux flavour properly detected: $flavour_id" 1>&2
+            echo 
+            echo " Please, review the script."
+            echo
+            exit
         fi
-    elif [ "$flavour_id" = "fedora" ]; then
-        if [ "$ROOT_INSTALL" = 1 ]; then
-            sleep 0.5
-            yum -y install $F_DEPENDENCIES
-        fi
-    else
-        echo
-        echo " [+] ERROR: No GNU/Linux flavour properly detected: $flavour_id" 1>&2
-        echo 
-        echo " Please, review the script."
-        echo
-        exit
     fi
+}
+
+add_src_dir(){
+    SRC_DIR=$INSTALL_PREFIX/src
+    PKG_CONFIG_PATH=$INSTALL_PREFIX/lib/pkgconfig
+    mkdir -p $SRC_DIR
+    mkdir -p $PKG_CONFIG_PATH
 }
 
 install_libbitcoin(){
@@ -123,7 +172,7 @@ install_libbitcoin(){
     echo
     echo " o/ Libbitcoin now installed."
     echo
-    }
+}
 
 install_libwallet(){
     cd $SRC_DIR
@@ -152,7 +201,7 @@ install_libwallet(){
     echo
     echo " o/ Libwallet now installed."
     echo
-    }
+}
 
 install_obelisk(){
     cd $SRC_DIR
@@ -181,7 +230,7 @@ install_obelisk(){
     echo
     echo " o/ Obelisk now installed."
     echo
-    }
+}
 
 install_sx(){
     BIN_DIR=$INSTALL_PREFIX/bin
@@ -212,7 +261,7 @@ install_sx(){
     echo
     echo " o/ SX tools now installed."
     echo
-    }
+}
 
 show_finish_install_info(){
     echo " --> Installation finished!"
@@ -240,9 +289,9 @@ show_finish_install_info(){
     echo
 }
 
-install_dependencies
-install_libbitcoin
-install_libwallet
-install_obelisk
-install_sx
-show_finish_install_info
+case "$1" in
+    "/*") custom_install ; install_dependencies ; add_src_dir ; install_libbitcoin ; install_libwallet ; install_obelisk ; install_sx ; show_finish_install_info ;;
+    "1") local_install ; install_dependencies ; add_src_dir ; install_libbitcoin ; install_libwallet ; install_obelisk ; install_sx ; show_finish_install_info ;;
+    "") root_install ; install_dependencies ; add_src_dir ; install_libbitcoin ; install_libwallet ; install_obelisk ; install_sx ; show_finish_install_info;;
+    "--help") help_install ;;
+esac
